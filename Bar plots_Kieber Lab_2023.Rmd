@@ -1,0 +1,227 @@
+---
+title: "Bar plots_Kieber Lab_2023"
+author: "Emily J Tallerday"
+date: "`r Sys.Date()`"
+output: ioslides_presentation
+---
+
+# Setup
+
+This is for the R markdown file settings. You shouldn't need to change anything
+
+```{r setup, include = F}
+knitr::opts_chunk$set(echo = T , 
+                      warning = F #, # including this is the ONLY way to get rid of the warnings in the flowering time plot! doing stuff inside that code chunk itself does NOT work. 
+                     # message = F #,
+                      # results = "hide" , 
+                      # error = F ,  
+                      # include = F
+                      )
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+
+These are the packages we need. You will likely have to install most of these in your version of R/Rstudio
+
+```{r, include = F}
+packages <- c("formatR",
+              "rmarkdown",
+              "tidyverse",
+              "gridExtra",
+              "ggpubr",
+              "viridis",
+              "ggthemes", 
+              "here",
+              "gplots",
+              "cowplot",
+              "ggtext",
+              "ggsignif",
+              "ggokabeito") 
+lapply(packages, require, character.only=T)
+```
+
+Set theme for ggplot
+
+```{r}
+theme_set(theme_light()) # set theme for ggplot2
+```
+
+Check location of your WD (where your data files should be):
+
+```{r}
+here()
+```
+
+# Functions
+
+The base function for generating the bar plots with most of the settings populated. You shouldn't need to change this, but you do have to run it
+
+```{r, include = F}
+## FUNCTION to make Joe's nice bar plots (for presentations)
+Bar_plot_data_by_genotype_signif_okabe <- function(data, mapping, compare, test_type) {
+    ggplot(data = data, mapping = mapping) + 
+    
+    stat_summary(fun = mean, geom = "bar", alpha = 0.75) +
+    geom_jitter(shape = 21, size = 2, alpha = 0.5, width = 0.3, height = 0.15, color = "black", fill = "black") +
+    ### stats
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width = 0.1, size = 0.75) + # adding error bars
+    geom_signif(comparisons = compare, test = test_type, 
+                map_signif_level = c("***"=0.001,"**"=0.01, "*"=0.05),
+                textsize = 6, color = "black", margin_top = 0.05, step_increase = 0.14, tip_length = 0.02 )
+}
+```
+
+For reference
+
+```{r}
+# ## Running example
+# p2 <- Bar_plot_data_by_genotype_signif_okabe(data = (double_shoot_data %>% dplyr::filter(Number_shoots > 0)), aes(x = Genotype, y = Number_shoots, color = Genotype, fill = Genotype), test_type = wilcox.test, compare = list(c("rr3,5del3,6,7,11","rr3,5,6,7,11"), c("WT", "rr3,5,6,7,11")) )
+# 
+# ## How to add labels, etc. ***
+# p2 +
+#    ylim(NA,3.5) +
+#   labs(
+#     title = "No. of shoots present in seedlings (7 DAG)",
+#     x = "Genotype",
+#     y = "No. of shoots",
+#     color = "Genotype"
+#   ) +
+# 
+# ### Setting legend names to italics while keeping the okabe coloring  
+#   scale_x_discrete(labels = c("WT","<i>rr3,5del3,6,7,11</i>","<i>rr3,5,6,7,11</i>") ) +
+#   theme(axis.text.x = element_markdown()) +
+#   
+#   scale_color_hue(labels = c("WT","<i>rr3,5del3,6,7,11</i>","<i>rr3,5,6,7,11</i>") ) + # , name = "Genotype"
+#   theme(legend.text = element_markdown()) +
+#   
+#   scale_fill_okabe_ito(labels = c("WT","<i>rr3,5del3,6,7,11</i>","<i>rr3,5,6,7,11</i>"))
+```
+
+# Data analysis
+
+## Load the data
+
+I'm including some of our chlorophyll concentration data as an example -- make sure this csv file is in your current working directory (what `here()` says)
+
+```{r}
+CCI <- read.csv(file = here("Data/Opti-Sciences_CCI_full_04242023.csv") ) # read in the file
+CCI <- CCI %>% na.omit() # clean it up by removing NA rows
+```
+
+NOTE: when you use your own data you'll want to format it in the "tidy" format like this csv file.
+
+## Format data
+
+Set names and formatting for some labels:
+
+```{r}
+## Char vec naming genotypes w MD formatting:
+Genotype <- c("<i>hk3,4,5</i>", "<i>rr3,5,6,7,11</i>", "WT")
+Date <- c("4/24/2023", "4/25/2023", "4/26/2023")
+```
+
+Set data classes for certain columns, as needed:
+
+```{r}
+## Manage data classes:
+CCI$Rep <- as.factor(CCI$Rep)
+CCI$Date <- as.factor(CCI$Date)
+CCI$Genotype <- as.factor(CCI$Genotype)
+CCI <- dplyr::filter(CCI, Genotype != "")
+CCI$CCI <- as.numeric(CCI$CCI)
+```
+
+## Prep stats to run
+
+Set what stats you want to run, and which things to compare. See [here](https://stackoverflow.com/questions/57567118/how-to-create-in-r-a-vector-automatically-which-contains-all-groups-to-be-compar) for details. The following will generate a list with all possible `Genotype` names paired (`2`), and this will be used to run the t.tests/equivalent later on.
+
+```{r}
+pairs <- combn(as.character(unique(CCI$Genotype)), 2, simplify = F)
+```
+
+# Plot
+
+```{r, echo = F, dev = "png", dpi = 300}
+Bar_plot_data_by_genotype_signif_okabe(
+  data = CCI %>% 
+    dplyr::filter(Date == "4/26/2023" ), # df to plot from, and I've filtered it so only data from that date are included
+
+  ### Set axis variables and coloring:
+  aes(x = Genotype, 
+      y = CCI, 
+      color = Genotype, 
+      fill = Genotype), # color = line color, fill = bar fill color
+
+  ### Give test info:  
+  test_type = wilcox.test, # the default is a standart t-test. I've set wilcox here because we have more than 2 genotypes
+  compare = pairs # This must match the list "pairs" made above
+) +
+
+
+  ### Adjust labels:  
+  labs(
+    title = "Chlorophyll content in 9-week old plants after 5 days dark treatment",
+    x = "Genotype",
+    y = "Chlorophyll content (CCI)",
+    color = "Genotype", # in legend
+    fill = "Genotype" # in legend
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) + # turns x-axis labels 45 degrees to fit
+
+
+  ### Setting legend names to italics while keeping the special okabe coloring
+  # just make sure these line up with what you set to color and fill at the top!
+  scale_x_discrete(labels = Genotype) + # x-axis variable 
+  theme(axis.text.x = element_markdown()) + # will take MD formatting you provided to do italics/bold/whatever -- here I've set it above to make the mutant names in italics
+  scale_color_hue(labels = Genotype) + # color variable
+  theme(legend.text = element_markdown()) +
+  scale_fill_okabe_ito(labels = Genotype) # fill variable
+```
+
+You can copy and paste the plot above into another document. This document is set to make a presentation, and all plots generated will be made as png's with a DPI of 300 (`dev = "png", dpi = 300` at top of this plot chunk).
+
+```{r}
+## Char vec naming genotypes w MD formatting:
+Species <- c("<i>setosa</i>", "<i>versicolor</i>", "virginica")
+```
+
+```{r, echo = F, dev = "png", dpi = 300}
+pairs <- combn(as.character(unique(iris$Species)), 2, simplify = F)
+
+Bar_plot_data_by_genotype_signif_okabe(
+  data = iris %>% 
+      ### Set axis variables and coloring:
+  aes(x = Species, 
+      y = `Petal.Length`, 
+      color = Species, 
+      fill = Species), # color = line color, fill = bar fill color
+
+  ### Give test info:  
+  test_type = wilcox.test, # the default is a standart t-test. I've set wilcox here because we have more than 2 genotypes
+  compare = pairs # This must match the list "pairs" made above
+) +
+
+  ### Adjust labels:  
+  labs(
+    title = "",
+    x = "Species",
+    y = "Petal Length",
+    color = "Species", # in legend
+    fill = "Species" # in legend
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) + # turns x-axis labels 45 degrees to fit
+
+
+  ### Setting legend names to italics while keeping the special okabe coloring
+  # just make sure these line up with what you set to color and fill at the top!
+  scale_x_discrete(labels = Species) + # x-axis variable 
+  theme(axis.text.x = element_markdown()) + # will take MD formatting you provided to do italics/bold/whatever -- here I've set it above to make the mutant names in italics
+  scale_color_hue(labels = Species) + # color variable
+  theme(legend.text = element_markdown()) +
+  scale_fill_okabe_ito(labels = Species) # fill variable
+```
+
+# Session info
+
+```{r, include = F}
+sessionInfo()
+```

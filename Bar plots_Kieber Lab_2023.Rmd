@@ -2,7 +2,7 @@
 title: "Bar plots_Kieber Lab_2023"
 author: "Emily J Tallerday"
 date: "`r Sys.Date()`"
-output: ioslides_presentation
+output: powerpoint_presentation
 ---
 
 # Setup
@@ -23,20 +23,16 @@ knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 These are the packages we need. You will likely have to install most of these in your version of R/Rstudio
 
 ```{r, include = F}
-packages <- c("formatR",
-              "rmarkdown",
-              "tidyverse",
-              "gridExtra",
-              "ggpubr",
-              "viridis",
-              "ggthemes", 
-              "here",
-              "gplots",
-              "cowplot",
-              "ggtext",
-              "ggsignif",
-              "ggokabeito") 
+library(rmarkdown)
+#library(pandoc)
+library(formatR)
+packages <- c("tidyverse","gridExtra","ggpubr","viridis","ggthemes", 
+              "here","gplots","cowplot","ggtext","ggsignif")
 lapply(packages, require, character.only=T)
+here()
+
+library(ggokabeito) # https://ggplot2.tidyverse.org/reference/scale_colour_discrete.html
+theme_set(theme_light()) # set theme
 ```
 
 Set theme for ggplot

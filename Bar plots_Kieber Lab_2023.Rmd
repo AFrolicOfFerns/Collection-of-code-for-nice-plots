@@ -179,6 +179,8 @@ Bar_plot_data_by_genotype_signif_okabe(
 
 You can copy and paste the plot above into another document. This document is set to make a presentation, and all plots generated will be made as png's with a DPI of 300 (`dev = "png", dpi = 300` at top of this plot chunk).
 
+### Trying to optimize stats visuals with iris dataset
+
 ```{r}
 ## Char vec naming genotypes w MD formatting:
 Species <- c("<i>setosa</i>", "<i>versicolor</i>", "virginica")

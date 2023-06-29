@@ -1,0 +1,87 @@
+---
+title: "Dose response assay plots"
+author: "Emily J Tallerday"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include = T}
+knitr::opts_chunk$set(echo = T #, 
+                      # results = "hide", error = F, warning = F, message = F, include = F
+                      )
+```
+
+# Load general packages & functions
+
+## Packages & set themes
+
+```{r, include = T}
+library(rmarkdown)
+library(pandoc)
+library(formatR)
+packages <- c("tidyverse","gridExtra","ggpubr","viridis","ggthemes", 
+              "here","gplots","cowplot","ggtext","ggsignif")
+lapply(packages, require, character.only=T)
+here()
+
+library(ggokabeito) # https://ggplot2.tidyverse.org/reference/scale_colour_discrete.html
+theme_set(theme_light()) # set theme
+```
+
+# Actual data from Eva
+
+## Import & organize data
+
+```{r}
+BA_response <- read.csv(here(r"(Data\06292023_Eva_BA response data.csv)"))
+```
+
+### Adjusting things in df to make plotting easier
+
+```{r}
+BA_response$treatment[BA_response$treatment == 'veh'] <- 0
+BA_response$genotype <- as.factor(BA_response$genotype)
+BA_response$treatment <- as.numeric(BA_response$treatment)
+colnames(BA_response) <- c("Genotype","Conc. BA (ng/uL)", "Shoot length (cm)", "Root length (cm)")
+```
+
+## Plotting
+
+Modified from: <https://rpkgs.datanovia.com/ggpubr/reference/stat_regline_equation.html>
+
+```{r, echo = F, dev = "png", dpi = 300}
+BA_response %>%
+ggplot(aes(x = `Conc. BA (ng/uL)`, y = `Root length (cm)`, color = Genotype, fill = Genotype)) +
+  geom_point(shape = 21, size = 2, alpha = 0.5, color = "black") +
+  geom_smooth(method = "lm", se = T, alpha = 0.2) +
+  facet_wrap(~Genotype,
+             ncol = 4,
+             nrow = 1,
+             scales = "free"
+             ) +
+  theme( strip.background = element_blank() ) +
+  
+  # stat_cor(#label.y = 8.8, 
+  #          #label.x = 10.5, 
+  #          color = "black") + 
+  stat_regline_equation(#label.y = 8, 
+                        #label.x = 10.5, 
+                        color = "black") + 
+  
+  labs(
+    color = "Genotype", # in legend
+    fill = "Genotype" # in legend
+  ) +
+  #scale_color_hue(labels = Genotype) + # color variable
+  #theme(legend.text = element_markdown()) +
+  scale_color_okabe_ito() +
+  scale_fill_okabe_ito() #%>% # fill variable 
+  # suppressWarnings() %>%
+  # suppressMessages()
+```
+
+# Session info
+
+```{r}
+session_info()
+```

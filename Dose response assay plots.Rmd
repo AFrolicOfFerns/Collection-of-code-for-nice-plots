@@ -2,94 +2,114 @@
 title: "Dose response assay plots"
 author: "Emily J Tallerday"
 date: "`r Sys.Date()`"
-output: html_document
+output: github_document
 ---
 
-```{r setup, include = F}
-knitr::opts_chunk$set(echo = T , 
-                      warning = F , # including this is the ONLY way to get rid of the warnings in the flowering time plot! doing stuff inside that code chunk itself does NOT work. 
-                     # message = F #,
-                      # results = "hide" , 
-                      error = F #,  
-                      # include = F
-                      )
-knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+# Setup
+
+## Load packages to be used
+
+```{r}
+packages <- c("rmarkdown", "pandoc", "formatR", "tidyverse", "gridExtra", "ggpubr", "viridis", "ggthemes", "here", "gplots", "cowplot", "ggtext", "ggsignif", "ggokabeito")
+pacman::p_load(char = packages, install = T, character.only = T)
 ```
 
-# Load general packages & functions
+## Set ggplot theme
 
-## Packages & set themes
-
-```{r, include = F, echo = F}
-packages <- c("rmarkdown","pandoc","formatR","tidyverse","gridExtra","ggpubr","viridis","ggthemes","here","gplots","cowplot","ggtext","ggsignif","ggokabeito")
-lapply(packages, require, character.only=T)
-
-```
-
-The packages being used are as follows:
-
-`packages <- c("rmarkdown","pandoc","formatR","tidyverse","gridExtra","ggpubr","viridis","ggthemes","here","gplots","cowplot","ggtext","ggsignif","ggokabeito")`
-
-and can be loaded using:
-
-`lapply(packages, require, character.only=T)`
-
-The ggplot theme used:
+My personal preference:
 
 ```{r}
 theme_set(theme_light())
 ```
 
-# Actual data from Eva
+## Define functions
 
-## Import & organize data
+This section may be empty if functions are not needed.
+
+# Data
+
+## Import
 
 ```{r}
 BA_response <- read.csv(here(r"(Data\06292023_Eva_BA response data.csv)"))
 ```
 
-### Adjusting things in df to make plotting easier
+NOTE that this data was provided by Eva from a magenta box BA dose response assay done in Summer 2023.
+
+## Tidy data for easy working
 
 ```{r}
-BA_response$treatment[BA_response$treatment == 'veh'] <- 0
-BA_response$genotype <- as.factor(BA_response$genotype)
-BA_response$treatment <- as.numeric(BA_response$treatment)
-colnames(BA_response) <- c("Genotype","Conc. BA (ng/uL)", "Shoot length (cm)", "Root length (cm)")
+BA_response$treatment[BA_response$treatment == "veh"] <- 0
 ```
 
-## Plotting
+```{r}
+BA_response$genotype <- as.factor(BA_response$genotype)
+```
 
-Modified from: <https://rpkgs.datanovia.com/ggpubr/reference/stat_regline_equation.html>
+```{r}
+BA_response$treatment <- as.numeric(BA_response$treatment)
+```
 
-```{r, echo = T, include=T, dev = "png", dpi = 300}
+```{r}
+colnames(BA_response) <- c("Genotype", "Conc. BA (ng/uL)", "Shoot length (cm)", "Root length (cm)")
+```
+
+# Plot
+
+## Linear regression
+
+The code for the following plot was modified from [this tutorial by datanovia](https://rpkgs.datanovia.com/ggpubr/reference/stat_regline_equation.html).
+
+```{r, echo = F, include=F, dev = "png", dpi = 300}
+## This is my messy, working, version. This will not be included in the knit document! Refer to the chunk below, instead.
 BA_response %>%
-ggplot(aes(x = `Conc. BA (ng/uL)`, y = `Root length (cm)`, color = Genotype, fill = Genotype)) +
+  ggplot(aes(x = `Conc. BA (ng/uL)`, y = `Root length (cm)`, color = Genotype, fill = Genotype)) +
   geom_point(shape = 21, size = 2, alpha = 0.5, color = "black") +
   geom_smooth(method = "lm", se = T, alpha = 0.2) +
   facet_wrap(~Genotype,
-             ncol = 4,
-             nrow = 1,
-             scales = "free"
-             ) +
-  theme( strip.background = element_blank() ) +
-  
-  # stat_cor(#label.y = 8.8, 
-  #          #label.x = 10.5, 
-  #          color = "black") + 
-  stat_regline_equation(#label.y = 8, 
-                        #label.x = 10.5, 
-                        color = "black") + 
-  
+    ncol = 4,
+    nrow = 1,
+    scales = "free"
+  ) +
+  theme(strip.background = element_blank()) +
+
+  # stat_cor(#label.y = 8.8,
+  #          #label.x = 10.5,
+  #          color = "black") +
+  stat_regline_equation( # label.y = 8,
+    # label.x = 10.5,
+    color = "black"
+  ) +
   labs(
     color = "Genotype", # in legend
     fill = "Genotype" # in legend
   ) +
-  #scale_color_hue(labels = Genotype) + # color variable
-  #theme(legend.text = element_markdown()) +
+  # scale_color_hue(labels = Genotype) + # color variable
+  # theme(legend.text = element_markdown()) +
   scale_color_okabe_ito() +
-  scale_fill_okabe_ito() %>% # fill variable 
+  scale_fill_okabe_ito() %>% # fill variable
   suppressWarnings() %>%
   suppressMessages()
+```
+
+```{r, echo = T, include=T, warning=F, message=F}
+BA_response %>%
+  ggplot(aes(x = `Conc. BA (ng/uL)`, y = `Root length (cm)`, color = Genotype, fill = Genotype)) +
+  geom_point(shape = 21, size = 2, alpha = 0.5, color = "black") +
+  geom_smooth(method = "lm", se = T, alpha = 0.2) +
+  facet_wrap(~Genotype,
+    ncol = 4,
+    nrow = 1,
+    scales = "free"
+  ) +
+  theme(strip.background = element_blank()) +
+  stat_regline_equation(color = "black") +
+  labs(
+    color = "Genotype",
+    fill = "Genotype"
+  ) +
+  scale_color_okabe_ito() +
+  scale_fill_okabe_ito()
 ```
 
 # Session info
